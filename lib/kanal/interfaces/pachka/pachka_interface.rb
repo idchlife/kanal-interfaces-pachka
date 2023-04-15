@@ -21,7 +21,7 @@ module Kanal
       #
       # Output parameters registered:
       #   output.pachka_text - you can specify it in the respond block for bot to reply with text
-      # TODO: more parameters
+      #   output.pachka_file_path - you can specify it in the respond block for bot to reply with file
       #
       class PachkaInterface < Kanal::Core::Interfaces::Interface
         include Kanal::Logger
