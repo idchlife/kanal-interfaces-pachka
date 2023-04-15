@@ -53,11 +53,12 @@ module Kanal
         end
 
         def consume_output(output)
+          unless output.pachka_file_path.nil?
+            @api.send_file(output.pachka_entity_id, output.pachka_file_path, output.pachka_text)
+            return
+          end
+
           @api.send_text(output.pachka_entity_id, output.pachka_text) unless output.pachka_text.nil?
-
-          return if output.pachka_file_path.nil?
-
-          @api.send_file(output.pachka_entity_id, output.pachka_file_path, output.pachka_text)
         end
 
         def start
