@@ -1,0 +1,17 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+vendor
+bin
+
+# rspec failure tracking
+.rspec_status
+frpc.ini
+.bundle
+.yardoc
+.DS_Store
