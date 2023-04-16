@@ -30,12 +30,14 @@ module Kanal
 
           def register_input_parameters(core)
             core.register_input_parameter :pachka_query, readonly: true
+            core.register_input_parameter :pachka_entity_type, readonly: true
             core.register_input_parameter :pachka_entity_id, readonly: true
             core.register_input_parameter :pachka_command, readonly: true
             core.register_input_parameter :pachka_text, readonly: true
           end
 
           def register_output_parameters(core)
+            core.register_output_parameter :pachka_entity_type
             core.register_output_parameter :pachka_entity_id
             core.register_output_parameter :pachka_text
             core.register_output_parameter :pachka_file_path
@@ -52,7 +54,8 @@ module Kanal
             end
 
             core.hooks.attach :output_before_returned do |input, output|
-              output.pachka_entity_id = input.pachka_entity_id
+              output.pachka_entity_id = input.pachka_entity_id if output.pachka_entity_id.nil?
+              output.pachka_entity_type = input.pachka_entity_type if output.pachka_entity_type.nil?
             end
           end
 

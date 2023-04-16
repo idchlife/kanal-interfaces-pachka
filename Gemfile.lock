@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    kanal-interfaces-pachka (0.1.0)
+    kanal-interfaces-pachka (0.1.2)
       faraday (= 2.7.4)
       faraday-multipart (= 1.0.4)
       kanal (= 0.5.1)

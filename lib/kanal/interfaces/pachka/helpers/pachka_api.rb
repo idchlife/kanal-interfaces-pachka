@@ -16,6 +16,8 @@ module Kanal
         class PachkaApi
           include Kanal::Logger
 
+          UploadedFile = Struct.new(:file_key, :file_name, :file_type, :file_size)
+
           #
           # @param access_token [String] access token for bot
           # @param verbose [Boolean] pass true to enable STDOUT logging of requests and responses
@@ -39,40 +41,57 @@ module Kanal
 
           #
           # Method sends text message via bot into the Pachka api
+          # with optionally sending files
           #
           # @param entity_id [Integer] id of discussion obtained from input
+          # @param entity_type [String] type of chat obtained from input
           # @param text [String] text to be sent
+          # @param uploaded_files [Array] array of UploadedFile objects to send with message
           #
           # @return [void] <description>
           #
-          def send_text(entity_id, text)
+          def send_message(entity_id, entity_type, text, uploaded_files = [])
+            payload = {
+              message: {
+                entity_type: entity_type,
+                entity_id: entity_id,
+                content: text
+              }
+            }
+
+            unless uploaded_files.empty?
+              files = []
+
+              uploaded_files.each do |uploaded_file|
+                files << {
+                  key: uploaded_file.file_key,
+                  name: uploaded_file.file_name,
+                  file_type: uploaded_file.file_type,
+                  size: uploaded_file.file_size
+                }
+              end
+
+              payload[:message][:files] = files
+            end
+
             @conn.post(
               "messages",
-              {
-                message: {
-                  entity_type: "discussion",
-                  entity_id: entity_id,
-                  content: text
-                }
-              }.to_json,
+              payload.to_json,
               { "Content-Type" => "application/json" }
             )
           rescue Exception => e
             logger.error "Cant send message to Pachka api! Error: #{e.full_message}"
+            raise
           end
 
           #
-          # Method sends message with file
+          # Method uploads file at filepath to Pachka api and returns UploadedFile
           #
-          # @param entity_id [Integer] entity_id obtained via input.pachka_entity_id
           # @param filepath [String] local filepath to file
-          # @param text [String] text of message
           #
-          # @return [void] <description>
+          # @return [UploadedFile] object containing all needed info to send with message
           #
-          def send_file(entity_id, filepath, text)
-            text ||= " "
-
+          def upload_file(filepath)
             # Obtaining all the needed fields for uploading a file
             res = @conn.post("uploads")
 
@@ -107,25 +126,12 @@ module Kanal
 
             raise "Problem with uploading file to Pachka api! More in api logs." unless res.success?
 
-            res = @conn.post(
-              "messages",
-              {
-                message: {
-                  entity_type: "discussion",
-                  entity_id: entity_id,
-                  content: text,
-                  files: [
-                    key: file_key,
-                    name: filename,
-                    file_type: mime_type.include?("image") ? "image" : "file",
-                    size: File.size(filepath)
-                  ]
-                }
-              }.to_json,
-              { "Content-Type" => "application/json" }
+            UploadedFile.new(
+              file_key,
+              filename,
+              mime_type.include?("image") ? "image" : "file",
+              File.size(filepath)
             )
-
-            raise "Problem with sending message with file to Pachka api! More in api logs." unless res.success?
           rescue Exception => e
             logger.error "Error sending file to Pachka api! More info: #{e.full_message}"
           end
