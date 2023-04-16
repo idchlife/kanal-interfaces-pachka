@@ -36,13 +36,13 @@ module Kanal
         # @param local_server_debug_log [Boolean] pass true for local server to log requests to it to Kanal logger
         # @param api_debug_log [Boolean] pass true to log pachka api requests to STDOUT
         #
-        def initialize(core, access_token, host: "localhost", port: 8090, local_server_debug_log: false, api_debug_log: false)
+        def initialize(core, access_token, host: "localhost", port: 8090, local_server_log: false, api_debug_log: false)
           super(core)
 
           @port = port
           @host = host
 
-          @local_server_debug_log = local_server_debug_log
+          @local_server_log = local_server_log
 
           @api = Kanal::Interfaces::Pachka::Helpers::PachkaApi.new access_token, verbose: api_debug_log
 
@@ -53,12 +53,37 @@ module Kanal
         end
 
         def consume_output(output)
+          text = output.pachka_text
+
+          uploaded_files = []
+
           unless output.pachka_file_path.nil?
-            @api.send_file(output.pachka_entity_id, output.pachka_file_path, output.pachka_text)
-            return
+            uploaded_file = @api.upload_file output.pachka_file_path
+
+            uploaded_files << uploaded_file
           end
 
-          @api.send_text(output.pachka_entity_id, output.pachka_text) unless output.pachka_text.nil?
+          # When sending files without text
+          text ||= " "
+
+          @api.send_message(
+            output.pachka_entity_id,
+            output.pachka_entity_type,
+            text,
+            uploaded_files
+          )
+        rescue Exception => e
+          logger.error "Error sending output as message to Pachka api! More info: #{e.full_message}"
+
+          begin
+            @api.send_message(
+              output.pachka_entity_id,
+              output.pachka_entity_type,
+              "Error occured while sending message to Pachka api. Please consult with developers of this bot"
+            )
+          rescue Exception => e
+            logger.fatal "Can't even send message about erro to Pachka api! More info: #{e.full_message}"
+          end
         end
 
         def start
@@ -66,10 +91,11 @@ module Kanal
 
           endpoint = Kanal::Interfaces::Pachka::Helpers::LocalServer.new(@host, @port)
           endpoint.on_request do |body|
-            logger.debug "Local server received request with body: #{body}" if @local_server_debug_log
+            logger.debug "Local server received request with body: #{body}" if @local_server_log
 
             input = core.create_input
             input.source = :pachka
+            input.pachka_entity_type = body["entity_type"]
             input.pachka_entity_id = body["entity_id"]
             input.pachka_query = body["content"]
 

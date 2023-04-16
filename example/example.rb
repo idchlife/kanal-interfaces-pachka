@@ -9,11 +9,11 @@ logger = Logger.new $stdout
 logger.level = Logger::WARN
 core.add_logger logger
 
-api_key = ENV.fetch("PACHKA_API_KEY", nil)
+api_key = ENV.fetch("PACHKA_ACCESS_TOKEN", nil)
 
 puts "Pachka api key: #{api_key}"
 
-interface = Kanal::Interfaces::Pachka::PachkaInterface.new(core, api_key, api_debug_log: false)
+interface = Kanal::Interfaces::Pachka::PachkaInterface.new(core, api_key, local_server_log: true, api_debug_log: true)
 
 interface.router.default_response do
   pachka_text "Hey! I don't know how to answer to this yet... But I will, someday ;)"
